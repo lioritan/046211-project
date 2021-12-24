@@ -10,14 +10,15 @@ def accuracy(predictions, targets):
 
 class MetaLearner(object):
 
-    def __init__(self, per_task_lr, meta_lr, adaptation_steps, meta_batch_size, nn_model, device):
+    def __init__(self, per_task_lr, meta_lr, adaptation_steps, meta_batch_size, nn_model, loss, device):
         self.meta_batch_size = meta_batch_size
         self.adaptation_steps = adaptation_steps
         self.device = device
         self.maml = l2l.algorithms.MAML(nn_model, lr=per_task_lr, first_order=False).to(device)
+        self.loss = loss
         self.opt = torch.optim.Adam(self.maml.parameters(), meta_lr)
 
-    def calculate_meta_loss(self, task, learner, loss):
+    def calculate_meta_loss(self, task, learner):
         data, labels = task
         data, labels = data.to(self.device), labels.to(self.device)
 
@@ -34,16 +35,16 @@ class MetaLearner(object):
 
         # Adapt the model
         for step in range(self.adaptation_steps):
-            adaptation_error = loss(learner(adaptation_data), adaptation_labels)
+            adaptation_error = self.loss(learner(adaptation_data), adaptation_labels)
             learner.adapt(adaptation_error)
 
         # Evaluate the adapted model
         predictions = learner(evaluation_data)
-        evaluation_error = loss(predictions, evaluation_labels)
+        evaluation_error = self.loss(predictions, evaluation_labels)
         evaluation_accuracy = accuracy(predictions, evaluation_labels)
         return evaluation_error, evaluation_accuracy
 
-    def meta_train(self, n_epochs, train_schedule, loss):
+    def meta_train(self, n_epochs, train_schedule):
         for iteration in range(n_epochs):
             self.opt.zero_grad()
             meta_train_error = 0.0
@@ -53,7 +54,7 @@ class MetaLearner(object):
                 # Compute meta-training loss
                 learner = self.maml.clone().to(self.device)
                 batch = train_schedule.get_next_task()
-                evaluation_error, evaluation_accuracy = self.calculate_meta_loss(batch, learner, loss)
+                evaluation_error, evaluation_accuracy = self.calculate_meta_loss(batch, learner)
                 train_schedule.update_from_feedback(evaluation_error, last_predict=None)  # currently, don't return the
                 # predicted result
 
@@ -62,13 +63,13 @@ class MetaLearner(object):
                 meta_train_accuracy += evaluation_accuracy.item()
 
             # Average the accumulated gradients and optimize
-            for p in self.maml.parameters():  # TODO: bad practice
+            for p in self.maml.parameters():  # TODO: bad practice, no real effect
                 p.grad.data.mul_(1.0 / self.meta_batch_size)
             self.opt.step()
-            # TODO: train loss improves, but accuracy does not!
+            # TODO: loss improves quickly, but accuracy improves slowly and not consistently
             print(meta_train_error / self.meta_batch_size, meta_train_accuracy / self.meta_batch_size)
 
-    def meta_test(self, test_taskset, loss):
+    def meta_test(self, test_taskset):
         # calculate test error
         meta_test_error = 0.0
         meta_test_accuracy = 0.0
@@ -76,7 +77,7 @@ class MetaLearner(object):
             # Compute meta-testing loss
             learner = self.maml.clone()
             batch = test_taskset.sample()
-            evaluation_error, evaluation_accuracy = self.calculate_meta_loss(batch, learner, loss)
+            evaluation_error, evaluation_accuracy = self.calculate_meta_loss(batch, learner)
             meta_test_error += evaluation_error.item()
             meta_test_accuracy += evaluation_accuracy.item()
 

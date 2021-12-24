@@ -8,7 +8,9 @@ from meta_learner_module import MetaLearner
 from scheduler.random_schedule import RandomSchedule
 
 
-def main(dataset, train_sample_size, n_test_labels, n_shots):
+def main(dataset, train_sample_size, n_test_labels, n_shots,
+         per_task_lr, meta_lr, adaptation_steps, meta_batch_size,
+         n_epochs):
     # shots = adaptation samples
     tasksets = l2l.vision.benchmarks.get_tasksets(dataset,
                                                   train_samples=train_sample_size,
@@ -24,43 +26,41 @@ def main(dataset, train_sample_size, n_test_labels, n_shots):
         n_test_labels) if dataset == "mini-imagenet" else l2l.vision.models.OmniglotCNN(
         n_test_labels).to(device)
 
-    per_task_lr = 0.5  # adaptation LR, should be high
-    meta_lr = 0.005
-    n_epochs = 20
-    meta_batch_size = 32
-    adaptation_steps = 1
-
-    meta_learner = MetaLearner(per_task_lr, meta_lr, adaptation_steps, meta_batch_size, model, device)
     loss = nn.CrossEntropyLoss(reduction='mean')
+    meta_learner = MetaLearner(per_task_lr, meta_lr, adaptation_steps, meta_batch_size, model, loss, device)
 
-    meta_learner.meta_train(n_epochs, train_schedule, loss)
+    meta_learner.meta_train(n_epochs, train_schedule)
 
-    meta_learner.meta_test(tasksets.test, loss)
+    meta_learner.meta_test(tasksets.test)
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--multiplier', default=1, type=int,
-                        help="Shot multiplier for maximum (=initial) support size.")
     parser.add_argument('--shots', default=5, type=int,
                         help="Number of training examples in the inner loop at meta-test time")
-    parser.add_argument('--ways', default=5, type=int, help="Number of candidate labels at meta-test time")
-    parser.add_argument('--freeze_l', action='store_true',
-                        help="Should L be frozen to original value instead of matching support size?")
-    parser.add_argument('--freeze_lr', action='store_true',
-                        help="Static inner loop lr, or normalised by root of batch size?")
-    parser.add_argument('--freeze_multiplier', action='store_true',
-                        help="Freeze the support size to multiplier * shot for ablation study.")
+    parser.add_argument('--ways', default=5, type=int, help="Number of candidate labels (classes) at meta-test time")
+    parser.add_argument('--train_size', default=80, type=int,
+                        help="Number of training examples in the inner loop at meta-train time")
+    parser.add_argument('--per_task_lr', default=0.5, type=int,
+                        help="Per task LR for adaptation, should be high")
+    parser.add_argument('--meta_lr', default=0.005, type=int,
+                        help="Meta LR")
+    parser.add_argument('--meta_batch_size', default=16, type=int,
+                        help="Number of task gradients to average for meta-gradient step")
+    parser.add_argument('--adaptation_steps', default=1, type=int,
+                        help="Number of gradient steps to take during adaptation, if more than 1, consider lowering per_task_lr")
+    parser.add_argument('--n_epochs', default=20, type=int,
+                        help="Meta epochs for training")
     parser.add_argument('--dataset', default="mini-imagenet", choices=["mini-imagenet", "omniglot"],
                         help="Dataset to use.")
-    parser.add_argument('--fc', action='store_true',
-                        help="Use fully connected rather than convolutional back-bone. Only relevant for omniglot.")
-    parser.add_argument('--resnet', action='store_true', help="Use resnet.")
     return parser
 
 
 if __name__ == "__main__":
     args = get_parser().parse_args()
-    main(dataset=args.dataset, train_sample_size=50, n_test_labels=args.ways, n_shots=args.shots)
+    main(dataset=args.dataset, train_sample_size=args.train_size, n_test_labels=args.ways, n_shots=args.shots,
+         per_task_lr=args.per_task_lr, meta_lr=args.meta_lr, adaptation_steps=args.adaptation_steps, meta_batch_size=args.meta_batch_size,
+         n_epochs=args.n_epochs
+         )
     #20 error, 0.26 acc
     # why is improving cross entropy not improving accuracy at all?
