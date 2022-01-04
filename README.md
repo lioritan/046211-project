@@ -1,11 +1,6 @@
 # Meta Learning (Technion ECE 046211 project)
-  TODO: add some nice image
-<h1 align="center">
-  <br>
-<!--
-  <img src="" height="200">
--->
-</h1>
+
+![Alt text](resources/meta_learn_struct.JPG)
 
 <p align="center">
 <a href="https://github.com/lioritan">Lior Friedman</a> •
@@ -18,6 +13,6 @@
   * [Setup](#setup)
     
 ## Intorduction
-TODO
+<a href="https://www.youtube.com/watch?v=ByeRnmHJ-uk">Tutorial on YouYube</a>
 ## Setup
 TODO
