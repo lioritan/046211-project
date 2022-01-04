@@ -10,26 +10,37 @@ def run_meta_learner(
         dataset, train_sample_size, n_test_labels, n_shots,
         per_task_lr, meta_lr, adaptation_steps, meta_batch_size,
         n_epochs):
-    # shots = adaptation samples
-    tasksets = l2l.vision.benchmarks.get_tasksets(dataset,
-                                                  train_samples=train_sample_size,
-                                                  train_ways=n_test_labels,
-                                                  test_samples=2 * n_shots,
-                                                  test_ways=n_test_labels,
-                                                  root='~/data')
 
-    train_schedule = RandomSchedule(tasksets.train)
+    # shots = adaptation samples
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model = l2l.vision.models.MiniImagenetCNN(
-        n_test_labels) if dataset == "mini-imagenet" else l2l.vision.models.OmniglotCNN(
-        n_test_labels).to(device)
+
+    print("get tasks")
+    task_sets = l2l.vision.benchmarks.get_tasksets(
+        dataset,
+        train_samples=train_sample_size,
+        train_ways=n_test_labels,
+        test_samples=2 * n_shots,
+        test_ways=n_test_labels,
+        root='~/data')
+
+    print("schedule training")
+    train_schedule = RandomSchedule(task_sets.train)
+
+    print(f"load model (dataset is {dataset})")
+    if dataset == "mini-imagenet":
+        model = l2l.vision.models.MiniImagenetCNN(n_test_labels)
+    else:
+        model = l2l.vision.models.OmniglotCNN(n_test_labels)
+    model.to(device)
 
     loss = nn.CrossEntropyLoss(reduction='mean')
+
+    print(f"create meta learner")
     meta_learner = MetaLearner(per_task_lr, meta_lr, adaptation_steps, meta_batch_size, model, loss, device)
 
+    print(f"meta learner train")
     meta_learner.meta_train(n_epochs, train_schedule)
 
-    meta_learner.meta_test(tasksets.test)
-
-
+    print(f"meta learner test")
+    meta_learner.meta_test(task_sets.test)
