@@ -1,0 +1,11 @@
+defaults = {}
+defaults['dataset'] = "mini-imagenet"
+defaults['train_sample_size'] = 20
+defaults['n_test_labels'] = 5
+defaults['n_shots'] = 5
+defaults['per_task_lr'] = 0.01
+defaults['meta_lr'] = 0.001
+defaults['meta_batch_size'] = 4
+defaults['adaptation_steps'] = 5
+defaults['n_epochs'] = 50
+
