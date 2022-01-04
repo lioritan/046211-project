@@ -1,4 +1,4 @@
-# Meta Learning (Technion ECE 046211 project)
+# Meta Learning Technion ECE 046211 project
 
 <p align="center">
 <a href="https://github.com/lioritan">Lior Friedman</a> •
@@ -7,8 +7,7 @@
 
 ![Alt text](resources/meta_learn_struct.JPG)
 
-
-- [Meta Learning](#Meta Learning (Technion ECE 046211 project))
+- [Meta Learning](#meta-learning-technion-ece-046211-project)
   * [Introduction](#intorduction)
   * [Setup](#setup)
     
