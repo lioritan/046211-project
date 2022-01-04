@@ -1,38 +1,5 @@
 import argparse
-
-import learn2learn as l2l
-import torch
-import torch.nn as nn
-
-from meta_learner_module import MetaLearner
-from scheduler.random_schedule import RandomSchedule
-
-
-def main(dataset, train_sample_size, n_test_labels, n_shots,
-         per_task_lr, meta_lr, adaptation_steps, meta_batch_size,
-         n_epochs):
-    # shots = adaptation samples
-    tasksets = l2l.vision.benchmarks.get_tasksets(dataset,
-                                                  train_samples=train_sample_size,
-                                                  train_ways=n_test_labels,
-                                                  test_samples=2 * n_shots,
-                                                  test_ways=n_test_labels,
-                                                  root='~/data')
-
-    train_schedule = RandomSchedule(tasksets.train)
-
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model = l2l.vision.models.MiniImagenetCNN(
-        n_test_labels) if dataset == "mini-imagenet" else l2l.vision.models.OmniglotCNN(
-        n_test_labels).to(device)
-
-    loss = nn.CrossEntropyLoss(reduction='mean')
-    meta_learner = MetaLearner(per_task_lr, meta_lr, adaptation_steps, meta_batch_size, model, loss, device)
-
-    meta_learner.meta_train(n_epochs, train_schedule)
-
-    meta_learner.meta_test(tasksets.test)
-
+from meta_learner_run import run_meta_learner
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -58,7 +25,7 @@ def get_parser():
 
 if __name__ == "__main__":
     args = get_parser().parse_args()
-    main(dataset=args.dataset, train_sample_size=args.train_size, n_test_labels=args.ways, n_shots=args.shots,
+    run_meta_learner(dataset=args.dataset, train_sample_size=args.train_size, n_test_labels=args.ways, n_shots=args.shots,
          per_task_lr=args.per_task_lr, meta_lr=args.meta_lr, adaptation_steps=args.adaptation_steps, meta_batch_size=args.meta_batch_size,
          n_epochs=args.n_epochs
          )
