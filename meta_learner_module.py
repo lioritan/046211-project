@@ -42,7 +42,7 @@ class MetaLearner(object):
         predictions = learner(evaluation_data)
         evaluation_error = self.loss(predictions, evaluation_labels)
         evaluation_accuracy = accuracy(predictions, evaluation_labels)
-        return evaluation_error, evaluation_accuracy
+        return evaluation_error, evaluation_accuracy, predictions
 
     def meta_train(self, n_epochs, train_schedule):
         for iteration in range(n_epochs):
@@ -54,9 +54,8 @@ class MetaLearner(object):
                 # Compute meta-training loss
                 learner = self.maml.clone().to(self.device)
                 batch = train_schedule.get_next_task()
-                evaluation_error, evaluation_accuracy = self.calculate_meta_loss(batch, learner)
-                train_schedule.update_from_feedback(evaluation_error, last_predict=None)  # currently, don't return the
-                # predicted result
+                evaluation_error, evaluation_accuracy, prediction = self.calculate_meta_loss(batch, learner)
+                train_schedule.update_from_feedback(evaluation_error, last_predict=prediction)
 
                 evaluation_error.backward()
                 meta_train_error += evaluation_error.item()
@@ -77,7 +76,7 @@ class MetaLearner(object):
             # Compute meta-testing loss
             learner = self.maml.clone()
             batch = test_taskset.sample()
-            evaluation_error, evaluation_accuracy = self.calculate_meta_loss(batch, learner)
+            evaluation_error, evaluation_accuracy, _ = self.calculate_meta_loss(batch, learner)
             meta_test_error += evaluation_error.item()
             meta_test_accuracy += evaluation_accuracy.item()
 

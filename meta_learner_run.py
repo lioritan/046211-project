@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 
 from meta_learner_module import MetaLearner
+from scheduler.prediction_similarity_schedule import PredictionSimilaritySchedule
 from scheduler.random_schedule import RandomSchedule
 
 
