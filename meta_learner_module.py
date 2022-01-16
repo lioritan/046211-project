@@ -65,8 +65,8 @@ class MetaLearner(object):
             for p in self.maml.parameters():  # TODO: bad practice, no real effect
                 p.grad.data.mul_(1.0 / self.meta_batch_size)
             self.opt.step()
-            # TODO: loss improves quickly, but accuracy improves slowly and not consistently
-            print(meta_train_error / self.meta_batch_size, meta_train_accuracy / self.meta_batch_size)
+            print(f"epoch={iteration}/{n_epochs-1}, loss={meta_train_error / self.meta_batch_size:.3f}, "
+                  f"acc={meta_train_accuracy / self.meta_batch_size:.3f}")
 
     def meta_test(self, test_taskset):
         # calculate test error
