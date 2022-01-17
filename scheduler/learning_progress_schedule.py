@@ -1,29 +1,35 @@
 import random
 
 import torch
+import torch.nn as nn
 import numpy as np
 from learn2learn.data.task_dataset import TaskDataset
 from scheduler.base_schedule import BaseSchedule
 from scheduler.helpers import generate_new_classes, labels_to_dataset, get_evaluation_set
 
 
-class PredictionSimilaritySchedule(BaseSchedule):
-    def __init__(self, taskset: TaskDataset, shots, ways, similar_first=False):
+class LearningProgressSchedule(BaseSchedule):
+    def __init__(self, taskset: TaskDataset, shots, ways):
         super().__init__(taskset)
         self.last_generation = None
-        self.task_to_prediction_mapping = {}
+        self.task_to_alp_mapping = {}
         self.generated_classes = 0
         self.ways = ways
         self.shots = shots
-        self.similar_first = similar_first
 
     def update_from_feedback(self, last_loss, last_predict=None):
         last_labels = self.last_generation[2] # divide to true false
         _, labels = get_evaluation_set(last_labels.size, None, last_labels)
-        for unique_label in set(labels):
+        for unique_label in set(last_labels):
             inds = (labels == unique_label)
             lbl_predict = last_predict[inds, -1]
-            self.task_to_prediction_mapping[unique_label] = lbl_predict
+            loss = nn.MSELoss(reduction='mean')
+            with torch.no_grad():
+                actual_labels = torch.tensor(labels[inds], device=last_predict.device)
+                task_loss = loss(lbl_predict, actual_labels)
+                if unique_label not in self.task_to_alp_mapping:
+                    self.task_to_alp_mapping[unique_label] = 0.0
+                self.task_to_alp_mapping[unique_label] = abs(task_loss - self.task_to_alp_mapping[unique_label])
 
     def get_next_task(self):
         # warm-up
@@ -32,20 +38,9 @@ class PredictionSimilaritySchedule(BaseSchedule):
             self.generated_classes += self.ways
             return self.last_generation[0], self.last_generation[1]
         else:
-            label_list = list(self.task_to_prediction_mapping.keys())
-            first_label = random.sample(label_list, 1)
-            label_pred = self.task_to_prediction_mapping[first_label[0]]
-            sim = torch.nn.CosineSimilarity(dim=0, eps=1e-08)
-            similarities = []
-            with torch.no_grad():
-                for label in self.task_to_prediction_mapping.keys():
-                    similarities.append(sim(label_pred, self.task_to_prediction_mapping[label]).item())
-            if self.similar_first:
-                most_similar = np.argsort(similarities)[::-1][1:self.ways]
-                labels = np.array(label_list)[most_similar]
-            else:
-                most_dissimilar = np.argsort(similarities)[:self.ways-1]
-                labels = np.array(label_list)[most_dissimilar]
-            labels = labels.tolist() + first_label
+            label_list = list(self.task_to_alp_mapping.keys())
+            highest_progress = np.argsort(list(self.task_to_alp_mapping.values()))
+            labels = np.array(label_list)[highest_progress[:self.ways]]
+            labels = labels.tolist()
             self.last_generation = labels_to_dataset(self.taskset.dataset, labels, self.shots)
             return self.last_generation[0], self.last_generation[1]

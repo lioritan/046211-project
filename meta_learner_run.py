@@ -4,8 +4,10 @@ import torch.nn as nn
 
 from meta_learner_module import MetaLearner
 from scheduler.batch_loss_schedule import BatchLossSchedule
+from scheduler.learning_progress_schedule import LearningProgressSchedule
 from scheduler.prediction_similarity_schedule import PredictionSimilaritySchedule
 from scheduler.random_schedule import RandomSchedule
+from scheduler.task_loss_schedule import TaskLossSchedule
 
 
 def run_meta_learner(
@@ -30,6 +32,8 @@ def run_meta_learner(
     train_schedule = RandomSchedule(task_sets.train)
     train_schedule = PredictionSimilaritySchedule(task_sets.train, shots=n_shots, ways=n_test_labels, similar_first=True)
     train_schedule = BatchLossSchedule(task_sets.train, shots=n_shots, ways=n_test_labels, hardest_first=True)
+    train_schedule = LearningProgressSchedule(task_sets.train, shots=n_shots, ways=n_test_labels)
+    #train_schedule = TaskLossSchedule(task_sets.train, shots=n_shots, ways=n_test_labels, hardest_first=True)
 
     print(f"load model (dataset is {dataset})")
     if dataset == "mini-imagenet":
