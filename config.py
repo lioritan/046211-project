@@ -6,6 +6,7 @@ defaults['n_shots'] = 5
 defaults['per_task_lr'] = 0.01
 defaults['meta_lr'] = 0.001
 defaults['meta_batch_size'] = 4
-defaults['adaptation_steps'] = 5
+defaults['train_adapt_steps'] = 5
+defaults['test_adapt_steps'] = 5
 defaults['n_epochs'] = 50
 
