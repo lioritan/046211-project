@@ -48,6 +48,8 @@ class MetaLearner(object):
         return evaluation_error, evaluation_accuracy, predictions
 
     def meta_train(self, n_epochs, train_schedule):
+        meta_train_errors = []
+        meta_train_accs = []
         for iteration in range(n_epochs):
             self.opt.zero_grad()
             meta_train_error = 0.0
@@ -68,8 +70,14 @@ class MetaLearner(object):
             for p in self.maml.parameters():  # TODO: bad practice, no real effect
                 p.grad.data.mul_(1.0 / self.meta_batch_size)
             self.opt.step()
-            print(f"epoch={iteration}/{n_epochs-1}, loss={meta_train_error / self.meta_batch_size:.3f}, "
-                  f"acc={meta_train_accuracy / self.meta_batch_size:.3f}")
+            norm_meta_train_error = meta_train_error / self.meta_batch_size
+            norm_meta_train_accuracy = meta_train_accuracy / self.meta_batch_size
+            meta_train_errors.append(norm_meta_train_error)
+            meta_train_accs.append(norm_meta_train_accuracy)
+            print(f"epoch={iteration}/{n_epochs-1}, "
+                  f"loss={norm_meta_train_error:.3f}, "
+                  f"acc={norm_meta_train_accuracy:.3f}")
+        return meta_train_errors, meta_train_accs
 
     def meta_test(self, test_taskset):
         # calculate test error
@@ -83,5 +91,9 @@ class MetaLearner(object):
             meta_test_error += evaluation_error.item()
             meta_test_accuracy += evaluation_accuracy.item()
 
-        print('Meta Test Error', meta_test_error / self.meta_batch_size, flush=True)
-        print('Meta Test Accuracy', meta_test_accuracy / self.meta_batch_size, flush=True)
+        norm_meta_test_error = meta_test_error / self.meta_batch_size
+        norm_meta_test_accuracy = meta_test_accuracy / self.meta_batch_size
+        print('Meta Test Error', norm_meta_test_error, flush=True)
+        print('Meta Test Accuracy', norm_meta_test_accuracy, flush=True)
+
+        return norm_meta_test_error, norm_meta_test_accuracy
