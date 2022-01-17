@@ -16,8 +16,10 @@ def get_parser():
                         help="Per task LR for adaptation, should be high")
     parser.add_argument('--meta_lr', default=defaults['meta_lr'], type=int,
                         help="Meta LR")
-    parser.add_argument('--adaptation_steps', default=defaults['adaptation_steps'], type=int,
-                        help="Number of gradient steps to take during adaptation, if more than 1, consider lowering per_task_lr")
+    parser.add_argument('--train_adapt_steps', default=defaults['train_adapt_steps'], type=int,
+                        help="Number of gradient steps to take during train adaptation, if more than 1, consider lowering per_task_lr")
+    parser.add_argument('--test_adapt_steps', default=defaults['test_adapt_steps'], type=int,
+                        help="Number of gradient steps to take during test adaptation, if more than 1, consider lowering per_task_lr")
     parser.add_argument('--meta_batch_size', default=defaults['meta_batch_size'], type=int,
                         help="Number of task gradients to average for meta-gradient step")
     parser.add_argument('--n_epochs', default=defaults['n_epochs'], type=int,
@@ -34,7 +36,8 @@ if __name__ == "__main__":
         n_shots=args.n_shots,
         per_task_lr=args.per_task_lr,
         meta_lr=args.meta_lr,
-        adaptation_steps=args.adaptation_steps,
+        train_adapt_steps=args.train_adapt_steps,
+        test_adapt_steps=args.test_adapt_steps,
         meta_batch_size=args.meta_batch_size,
         n_epochs=args.n_epochs)
 

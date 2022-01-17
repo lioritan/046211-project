@@ -11,11 +11,16 @@ from scheduler.task_loss_schedule import TaskLossSchedule
 
 
 def run_meta_learner(
-        dataset, train_sample_size, n_test_labels, n_shots,
-        per_task_lr, meta_lr, adaptation_steps, meta_batch_size,
+        dataset,
+        train_sample_size,
+        n_test_labels,
+        n_shots,
+        per_task_lr,
+        meta_lr,
+        train_adapt_steps,
+        test_adapt_steps,
+        meta_batch_size,
         n_epochs):
-
-    # shots = adaptation samples
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -29,8 +34,8 @@ def run_meta_learner(
         root='~/data')
 
     print("schedule training")
-    train_schedule = RandomSchedule(task_sets.train)
-    train_schedule = PredictionSimilaritySchedule(task_sets.train, shots=n_shots, ways=n_test_labels, similar_first=True)
+    #train_schedule = RandomSchedule(task_sets.train)
+    #train_schedule = PredictionSimilaritySchedule(task_sets.train, shots=n_shots, ways=n_test_labels, similar_first=True)
     train_schedule = BatchLossSchedule(task_sets.train, shots=n_shots, ways=n_test_labels, hardest_first=True)
     train_schedule = LearningProgressSchedule(task_sets.train, shots=n_shots, ways=n_test_labels)
     #train_schedule = TaskLossSchedule(task_sets.train, shots=n_shots, ways=n_test_labels, hardest_first=True)
@@ -42,10 +47,18 @@ def run_meta_learner(
         model = l2l.vision.models.OmniglotCNN(n_test_labels)
     model.to(device)
 
-    loss = nn.CrossEntropyLoss(reduction='mean')
+    f_loss = nn.CrossEntropyLoss(reduction='mean')
 
     print(f"create meta learner")
-    meta_learner = MetaLearner(per_task_lr, meta_lr, adaptation_steps, meta_batch_size, model, loss, device)
+    meta_learner = MetaLearner(
+        per_task_lr,
+        meta_lr,
+        train_adapt_steps,
+        test_adapt_steps,
+        meta_batch_size,
+        model,
+        f_loss,
+        device)
 
     print(f"meta learner train")
     meta_learner.meta_train(n_epochs, train_schedule)
