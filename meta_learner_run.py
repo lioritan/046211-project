@@ -28,8 +28,8 @@ def run_meta_learner(
 
     print("schedule training")
     train_schedule = RandomSchedule(task_sets.train)
-    train_schedule = PredictionSimilaritySchedule(task_sets.train, similar_first=True)
-    train_schedule = BatchLossSchedule(task_sets.train, hardest_first=True)
+    train_schedule = PredictionSimilaritySchedule(task_sets.train, shots=n_shots, ways=n_test_labels, similar_first=True)
+    train_schedule = BatchLossSchedule(task_sets.train, shots=n_shots, ways=n_test_labels, hardest_first=True)
 
     print(f"load model (dataset is {dataset})")
     if dataset == "mini-imagenet":

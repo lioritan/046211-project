@@ -8,13 +8,13 @@ from scheduler.helpers import generate_new_classes, labels_to_dataset
 
 
 class BatchLossSchedule(BaseSchedule):
-    def __init__(self, taskset: TaskDataset, hardest_first=True):
+    def __init__(self, taskset: TaskDataset, shots, ways, hardest_first=True):
         super().__init__(taskset)
         self.last_generation = None
         self.task_to_batch_error_mapping = {}
         self.generated_classes = 0
-        self.ways = self.taskset.task_transforms[0].n
-        self.shots = self.taskset.task_transforms[1].k
+        self.ways = ways
+        self.shots = shots
         self.hardest_first = hardest_first
 
     def update_from_feedback(self, last_loss, last_predict=None):

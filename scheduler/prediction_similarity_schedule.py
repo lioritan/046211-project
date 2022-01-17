@@ -8,13 +8,13 @@ from scheduler.helpers import generate_new_classes, labels_to_dataset
 
 
 class PredictionSimilaritySchedule(BaseSchedule):
-    def __init__(self, taskset: TaskDataset, similar_first=False):
+    def __init__(self, taskset: TaskDataset, shots, ways, similar_first=False):
         super().__init__(taskset)
         self.last_generation = None
         self.task_to_prediction_mapping = {}
         self.generated_classes = 0
-        self.ways = self.taskset.task_transforms[0].n
-        self.shots = self.taskset.task_transforms[1].k
+        self.ways = ways
+        self.shots = shots
         self.similar_first = similar_first
 
     def update_from_feedback(self, last_loss, last_predict=None):
