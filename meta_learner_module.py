@@ -18,30 +18,33 @@ class MetaLearner(object):
         self.loss = loss
         self.opt = torch.optim.Adam(self.maml.parameters(), meta_lr)
 
-    def calculate_meta_loss(self, task, learner):
-        data, labels = task
-        data, labels = data.to(self.device), labels.to(self.device)
+    def calculate_meta_loss(self, task_batch, learner):
+        D_task_xs, D_task_ys = task_batch
+        D_task_xs, D_task_ys = D_task_xs.to(self.device), D_task_ys.to(self.device)
+
+        task_batch_size = D_task_xs.size(0)
 
         # Separate data into adaptation / evaluation sets
-        adaptation_indices = np.zeros(data.size(0), dtype=bool)
-        adaptation_indices[np.arange(round(data.size(0) / 2)) * 2] = True
-        evaluation_indices = ~adaptation_indices
+        adapt_indices = np.zeros(task_batch_size, dtype=bool)
+        train_frac = round(task_batch_size / 2)
+        adapt_indices[np.arange(train_frac) * 2] = True
+        error_eval_indices = ~adapt_indices
 
         # numpy -> torch
-        evaluation_indices = torch.from_numpy(evaluation_indices)
-        adaptation_indices = torch.from_numpy(adaptation_indices)
-        adaptation_data, adaptation_labels = data[adaptation_indices], labels[adaptation_indices]
-        evaluation_data, evaluation_labels = data[evaluation_indices], labels[evaluation_indices]
+        adapt_indices = torch.from_numpy(adapt_indices)
+        error_eval_indices = torch.from_numpy(error_eval_indices)
+        D_task_xs_adapt, D_task_ys_adapt = D_task_xs[adapt_indices], D_task_ys[adapt_indices]
+        D_task_xs_error_eval, D_task_ys_error_eval = D_task_xs[error_eval_indices], D_task_ys[error_eval_indices]
 
         # Adapt the model
         for step in range(self.adaptation_steps):
-            adaptation_error = self.loss(learner(adaptation_data), adaptation_labels)
+            adaptation_error = self.loss(learner(D_task_xs_adapt), D_task_ys_adapt)
             learner.adapt(adaptation_error)
 
         # Evaluate the adapted model
-        predictions = learner(evaluation_data)
-        evaluation_error = self.loss(predictions, evaluation_labels)
-        evaluation_accuracy = accuracy(predictions, evaluation_labels)
+        predictions = learner(D_task_xs_error_eval)
+        evaluation_error = self.loss(predictions, D_task_ys_error_eval)
+        evaluation_accuracy = accuracy(predictions, D_task_ys_error_eval)
         return evaluation_error, evaluation_accuracy, predictions
 
     def meta_train(self, n_epochs, train_schedule):
@@ -75,8 +78,8 @@ class MetaLearner(object):
         for task in range(self.meta_batch_size):
             # Compute meta-testing loss
             learner = self.maml.clone()
-            batch = test_taskset.sample()
-            evaluation_error, evaluation_accuracy, _ = self.calculate_meta_loss(batch, learner)
+            D_test_batch = test_taskset.sample()
+            evaluation_error, evaluation_accuracy, _ = self.calculate_meta_loss(D_test_batch, learner)
             meta_test_error += evaluation_error.item()
             meta_test_accuracy += evaluation_accuracy.item()
 
