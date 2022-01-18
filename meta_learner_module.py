@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import learn2learn as l2l
+from utils import fix_seed
 
 
 def accuracy(predictions, targets):
@@ -97,7 +98,13 @@ class MetaLearner(object):
         return meta_train_errors, meta_train_accs
 
     def meta_test(self, test_taskset):
+
         # calculate test error
+
+        # we fix a seed here to be agnostic to previous operations
+        # as we want to compare the same task random sampling
+        fix_seed(1)
+
         meta_test_error = 0.0
         meta_test_accuracy = 0.0
         for task in range(self.meta_batch_size):
