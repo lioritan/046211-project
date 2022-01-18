@@ -27,9 +27,11 @@ a good test accuracy.
 
 ![Alt text](resources/grads.JPG)
 
-
+Some sources to get started on meta learning and MAML in specific:  
 <a href="https://www.youtube.com/watch?v=ByeRnmHJ-uk">A short tutorial of MAML algorithms writers</a>    
-<a href="http://proceedings.mlr.press/v70/finn17a">The MAML paper</a>      
+<a href="http://proceedings.mlr.press/v70/finn17a">The MAML paper</a>
+
+A great opened course lectures on youtube:  
 <a href="https://www.youtube.com/playlist?list=PLoROMvodv4rMC6zfYmnD7UG3LVvwaITY5">Stanford CS330 course on Multi-Task and Meta-Learning</a>  
 
 ## Setup
