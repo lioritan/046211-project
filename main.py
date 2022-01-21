@@ -14,9 +14,9 @@ def get_parser():
                         help="Number of candidate labels (classes) at meta-test time")
     parser.add_argument('--n_shots', default=defaults['n_shots'], type=int,
                         help="Number of training examples in the inner loop at meta-test time")
-    parser.add_argument('--per_task_lr', default=defaults['per_task_lr'], type=int,
+    parser.add_argument('--per_task_lr', default=defaults['per_task_lr'], type=float,
                         help="Per task LR for adaptation, should be high")
-    parser.add_argument('--meta_lr', default=defaults['meta_lr'], type=int,
+    parser.add_argument('--meta_lr', default=defaults['meta_lr'], type=float,
                         help="Meta LR")
     parser.add_argument('--train_adapt_steps', default=defaults['train_adapt_steps'], type=int,
                         help="Number of gradient steps to take during train adaptation, if more than 1, consider lowering per_task_lr")
@@ -26,8 +26,8 @@ def get_parser():
                         help="Number of task gradients to average for meta-gradient step")
     parser.add_argument('--n_epochs', default=defaults['n_epochs'], type=int,
                         help="Meta epochs for training")
-    parser.add_argument('seed', type=int, default=1)
-    parser.add_argument('teacher', default="random")
+    parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--teacher', default="random")
     return parser
 
 

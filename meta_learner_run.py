@@ -87,7 +87,7 @@ def run_meta_learner(
         root='~/data')
 
     print("schedule training")
-    train_schedule = schedule_name_to_class(task_sets.train, n_shots, n_test_labels)
+    train_schedule = schedule_name_to_class(schedule_name, task_sets.train, n_shots, n_test_labels)
 
     print(f"load model (dataset is {dataset})")
     if dataset == "mini-imagenet":
