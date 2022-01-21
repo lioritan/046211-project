@@ -4,10 +4,59 @@ import torch.nn as nn
 
 from meta_learner_module import MetaLearner
 from scheduler.batch_loss_schedule import BatchLossSchedule
+from scheduler.kl_similarity_schedule import KLSimilaritySchedule
 from scheduler.learning_progress_schedule import LearningProgressSchedule
 from scheduler.prediction_similarity_schedule import PredictionSimilaritySchedule
 from scheduler.random_schedule import RandomSchedule
 from scheduler.task_loss_schedule import TaskLossSchedule
+
+try:
+    import wandb
+except Exception as e:
+    pass
+
+
+def log_wandb(dataset, train_sample_size, n_test_labels, n_shots, per_task_lr, meta_lr, train_adapt_steps,
+              test_adapt_steps, meta_batch_size, n_epochs, schedule_alg):
+    try:
+        wandb.init(project=f'meta-task-cl-project', entity='liorf', save_code=True)
+        config = wandb.config
+        config.task = dataset
+        config.teacher = str(schedule_alg)
+        config.ways = n_test_labels
+        config.shots = n_shots
+        config.train_sample = train_sample_size
+        config.task_lr = per_task_lr
+        config.meta_lr = meta_lr
+        config.train_adapt_steps = train_adapt_steps
+        config.test_adapt_steps = test_adapt_steps
+        config.batch_size = meta_batch_size
+    except Exception as e:
+        pass
+
+
+def schedule_name_to_class(schedule_name, dataset, shots, ways):
+    if schedule_name == "random":
+        return RandomSchedule(dataset)
+    elif schedule_name == "prediction-similar":
+        return PredictionSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=True)
+    elif schedule_name == "prediction-far":
+        return PredictionSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=False)
+    elif schedule_name == "kl-similar":
+        return KLSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=True)
+    elif schedule_name == "kl-far":
+        return KLSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=False)
+    elif schedule_name == "batch-loss-high":
+        return BatchLossSchedule(dataset, shots=shots, ways=ways, hardest_first=True)
+    elif schedule_name == "batch-loss-low":
+        return BatchLossSchedule(dataset, shots=shots, ways=ways, hardest_first=False)
+    elif schedule_name == "task-loss-high":
+        return TaskLossSchedule(dataset, shots=shots, ways=ways, hardest_first=True)
+    elif schedule_name == "task-loss-low":
+        return TaskLossSchedule(dataset, shots=shots, ways=ways, hardest_first=False)
+    elif schedule_name == "learning-progress":
+        return LearningProgressSchedule(dataset, shots=shots, ways=ways)
+    raise ValueError("not supported")
 
 
 def run_meta_learner(
@@ -20,7 +69,11 @@ def run_meta_learner(
         train_adapt_steps,
         test_adapt_steps,
         meta_batch_size,
-        n_epochs):
+        n_epochs,
+        schedule_name="random",
+        seed=1):
+    log_wandb(dataset, train_sample_size, n_test_labels, n_shots, per_task_lr, meta_lr,
+              train_adapt_steps, test_adapt_steps, meta_batch_size, n_epochs, schedule_name)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -34,11 +87,7 @@ def run_meta_learner(
         root='~/data')
 
     print("schedule training")
-    #train_schedule = RandomSchedule(task_sets.train)
-    #train_schedule = PredictionSimilaritySchedule(task_sets.train, shots=n_shots, ways=n_test_labels, similar_first=True)
-    train_schedule = BatchLossSchedule(task_sets.train, shots=n_shots, ways=n_test_labels, hardest_first=True)
-    train_schedule = LearningProgressSchedule(task_sets.train, shots=n_shots, ways=n_test_labels)
-    #train_schedule = TaskLossSchedule(task_sets.train, shots=n_shots, ways=n_test_labels, hardest_first=True)
+    train_schedule = schedule_name_to_class(task_sets.train, n_shots, n_test_labels)
 
     print(f"load model (dataset is {dataset})")
     if dataset == "mini-imagenet":
@@ -46,6 +95,11 @@ def run_meta_learner(
     else:
         model = l2l.vision.models.OmniglotCNN(n_test_labels)
     model.to(device)
+
+    try:
+        wandb.watch(model)
+    except Exception as e:
+        pass
 
     f_loss = nn.CrossEntropyLoss(reduction='mean')
 
@@ -58,7 +112,8 @@ def run_meta_learner(
         meta_batch_size,
         model,
         f_loss,
-        device)
+        device,
+        seed)
 
     print(f"meta learner train")
     meta_learner.meta_train(n_epochs, train_schedule)

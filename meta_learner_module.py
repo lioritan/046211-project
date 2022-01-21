@@ -3,6 +3,11 @@ import numpy as np
 import learn2learn as l2l
 from utils import fix_seed
 
+try:
+    import wandb
+except Exception as e:
+    pass
+
 
 def accuracy(predictions, targets):
     predictions = predictions.argmax(dim=1).view(targets.shape)
@@ -20,7 +25,8 @@ class MetaLearner(object):
             meta_batch_size,
             nn_model,
             f_loss,
-            device):
+            device,
+            seed):
 
         self.meta_batch_size = meta_batch_size
         self.train_adapt_steps = train_adapt_steps
@@ -29,6 +35,7 @@ class MetaLearner(object):
         self.maml = l2l.algorithms.MAML(nn_model, lr=per_task_lr, first_order=False).to(device)
         self.loss = f_loss
         self.opt = torch.optim.Adam(self.maml.parameters(), meta_lr)
+        self.seed = seed
 
     def calculate_meta_loss(self, task_batch, learner, adapt_steps):
         D_task_xs, D_task_ys = task_batch
@@ -62,6 +69,8 @@ class MetaLearner(object):
 
     def meta_train(self, n_epochs, train_schedule):
 
+        fix_seed(self.seed)
+
         meta_train_errors = []
         meta_train_accs = []
 
@@ -75,7 +84,7 @@ class MetaLearner(object):
                 # Compute meta-training loss
                 learner = self.maml.clone().to(self.device)
                 batch = train_schedule.get_next_task()
-                evaluation_error, evaluation_accuracy, prediction =\
+                evaluation_error, evaluation_accuracy, prediction = \
                     self.calculate_meta_loss(batch, learner, self.train_adapt_steps)
                 train_schedule.update_from_feedback(evaluation_error, last_predict=prediction)
 
@@ -91,9 +100,16 @@ class MetaLearner(object):
             norm_meta_train_accuracy = meta_train_accuracy / self.meta_batch_size
             meta_train_errors.append(norm_meta_train_error)
             meta_train_accs.append(norm_meta_train_accuracy)
-            print(f"epoch={epoch+1}/{n_epochs}, "
+            print(f"epoch={epoch + 1}/{n_epochs}, "
                   f"loss={norm_meta_train_error:.3f}, "
                   f"acc={norm_meta_train_accuracy:.3f}")
+
+            try:
+                wandb.log({"epoch": epoch + 1,
+                           "train_loss": norm_meta_train_error,
+                           "train_acc": norm_meta_train_accuracy})
+            except Exception as e:
+                pass
 
         return meta_train_errors, meta_train_accs
 
@@ -103,7 +119,7 @@ class MetaLearner(object):
 
         # we fix a seed here to be agnostic to previous operations
         # as we want to compare the same task random sampling
-        fix_seed(1)
+        fix_seed(self.seed)
 
         meta_test_error = 0.0
         meta_test_accuracy = 0.0
@@ -111,7 +127,7 @@ class MetaLearner(object):
             # Compute meta-testing loss
             learner = self.maml.clone()
             D_test_batch = test_taskset.sample()
-            evaluation_error, evaluation_accuracy, _ =\
+            evaluation_error, evaluation_accuracy, _ = \
                 self.calculate_meta_loss(D_test_batch, learner, self.test_adapt_steps)
             meta_test_error += evaluation_error.item()
             meta_test_accuracy += evaluation_accuracy.item()
@@ -120,5 +136,12 @@ class MetaLearner(object):
         norm_meta_test_accuracy = meta_test_accuracy / self.meta_batch_size
         print('Meta Test Error', norm_meta_test_error, flush=True)
         print('Meta Test Accuracy', norm_meta_test_accuracy, flush=True)
+
+        try:
+            wandb.log({
+                       "test_loss": norm_meta_test_error,
+                       "test_acc": norm_meta_test_accuracy})
+        except Exception as e:
+            pass
 
         return norm_meta_test_error, norm_meta_test_accuracy

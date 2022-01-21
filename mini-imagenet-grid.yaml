@@ -1,0 +1,44 @@
+program: main.py
+method: grid
+name: meta-task-cl-project
+project: meta-task-cl-project
+parameters:
+  dataset:
+    value: "mini-imagenet"
+
+  train_sample_size:
+    value: 20
+
+  n_test_labels:
+    value: 5
+
+  n_shots:
+    value: 5
+
+  per_task_lr:
+    value: 0.01
+
+  meta_lr:
+    value: 0.001
+
+  meta_batch_size:
+    value: 4
+
+  train_adapt_steps:
+    value: 5
+
+  test_adapt_steps:
+    value: 5
+
+  n_epochs:
+    value: 50
+
+  teacher:
+    values: [ "random", "learning-progress",
+              "prediction-similar","prediction-far",
+              "kl-similar", "kl-far",
+              "batch-loss-high","batch-loss-low",
+              "task-loss-high", "task-loss-low"]
+
+  seed:
+    values: [42, 1337, 8675309]
