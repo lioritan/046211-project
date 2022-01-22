@@ -1,0 +1,44 @@
+program: main.py
+method: grid
+name: meta-task-cl-project-glot
+project: meta-task-cl-project-glot
+parameters:
+  dataset:
+    value: "omniglot"
+
+  train_sample_size:
+    value: 15
+
+  n_test_labels:
+    value: 5
+
+  n_shots:
+    value: 1
+
+  per_task_lr:
+    value: 0.1
+
+  meta_lr:
+    value: 0.003
+
+  meta_batch_size:
+    value: 8
+
+  train_adapt_steps:
+    value: 5
+
+  test_adapt_steps:
+    value: 10
+
+  n_epochs:
+    value: 100
+
+  teacher:
+    values: [ "random", "learning-progress",
+              "prediction-similar","prediction-far",
+              "kl-similar", "kl-far",
+              "batch-loss-high","batch-loss-low",
+              "task-loss-high", "task-loss-low"]
+
+  seed:
+    values: [42, 1337, 8675309]
