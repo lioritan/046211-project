@@ -1,7 +1,6 @@
 import argparse
 from config import defaults
 from meta_learner_run import run_meta_learner
-from scheduler.random_schedule import RandomSchedule
 
 
 def get_parser():
@@ -26,8 +25,11 @@ def get_parser():
                         help="Number of task gradients to average for meta-gradient step")
     parser.add_argument('--n_epochs', default=defaults['n_epochs'], type=int,
                         help="Meta epochs for training")
-    parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--teacher', default="random")
+    parser.add_argument('--seed', type=int, default=1, help="Random seed")
+    parser.add_argument('--teacher', default="random", help="teacher method. One of: "
+                                                            "random/prediction-far/prediction-similar/"
+                                                            "kl-far/kl-similar/batch-loss-high/batch-loss-low/"
+                                                            "task-loss-high/task-loss-low/learning-progress")
     return parser
 
 
@@ -46,6 +48,3 @@ if __name__ == "__main__":
         n_epochs=args.n_epochs,
         schedule_name=args.teacher,
         seed=args.seed)
-
-    #20 error, 0.26 acc
-    # why is improving cross entropy not improving accuracy at all?

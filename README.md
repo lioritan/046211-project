@@ -44,5 +44,6 @@ In order to run the code, you can use the direct main.py file with its arguments
 (see the args in code)  
 Or   
 You can open the jupyter notebook (was run on google colab due to GPU needs).
+Grid search comperative experiments were run using wandb (weights & biases) sweeps. 
 
 
