@@ -83,7 +83,6 @@ class MetaLearner(object):
             meta_train_accuracy = 0.0
 
             for task in range(self.meta_batch_size):
-                print(torch.cuda.memory_allocated(0))
                 # Compute meta-training loss
                 learner = self.maml.clone().to(self.device)
                 # get task from schedule
