@@ -17,7 +17,7 @@ class BatchLossSchedule(BaseSchedule):
         self.shots = shots
         self.hardest_first = hardest_first
 
-    def update_from_feedback(self, last_loss, last_predict=None):
+    def update_from_feedback(self, last_loss, last_predict=None, last_features=None):
         unique_labels = set(self.last_generation[2])
         for unique_label in unique_labels:
             self.task_to_batch_error_mapping[unique_label] = last_loss.item()

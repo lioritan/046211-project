@@ -1,4 +1,4 @@
-program: main.py
+program: ../main.py
 method: grid
 name: meta-task-cl-project-glot
 project: meta-task-cl-project-glot
@@ -36,7 +36,7 @@ parameters:
   teacher:
     values: [ "random", "learning-progress",
               "prediction-similar","prediction-far",
-              "kl-similar", "kl-far",
+              "input-similar", "input-far",
               "batch-loss-high","batch-loss-low",
               "task-loss-high", "task-loss-low"]
 

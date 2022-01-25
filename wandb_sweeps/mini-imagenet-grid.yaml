@@ -1,4 +1,4 @@
-program: main.py
+program: ../main.py
 method: grid
 name: meta-task-cl-project
 project: meta-task-cl-project
@@ -7,7 +7,7 @@ parameters:
     value: "mini-imagenet"
 
   train_sample_size:
-    value: 20
+    value: 15
 
   n_test_labels:
     value: 5
@@ -22,21 +22,21 @@ parameters:
     value: 0.001
 
   meta_batch_size:
-    value: 4
+    value: 2
 
   train_adapt_steps:
     value: 5
 
   test_adapt_steps:
-    value: 5
+    value: 10
 
   n_epochs:
-    value: 50
+    value: 100
 
   teacher:
     values: [ "random", "learning-progress",
               "prediction-similar","prediction-far",
-              "kl-similar", "kl-far",
+              "input-similar", "input-far",
               "batch-loss-high","batch-loss-low",
               "task-loss-high", "task-loss-low"]
 

@@ -12,13 +12,14 @@ class LearningProgressSchedule(BaseSchedule):
     def __init__(self, taskset: TaskDataset, shots, ways):
         super().__init__(taskset)
         self.last_generation = None
+        self.task_to_last_mapping = {}
         self.task_to_alp_mapping = {}
         self.generated_classes = 0
         self.ways = ways
         self.shots = shots
 
-    def update_from_feedback(self, last_loss, last_predict=None):
-        last_labels = self.last_generation[2] # divide to true false
+    def update_from_feedback(self, last_loss, last_predict=None, last_features=None):
+        last_labels = self.last_generation[2]
         _, labels = get_evaluation_set(last_labels.size, None, last_labels)
         for unique_label in set(last_labels):
             inds = (labels == unique_label)
@@ -27,9 +28,10 @@ class LearningProgressSchedule(BaseSchedule):
             with torch.no_grad():
                 actual_labels = torch.tensor(labels[inds], device=last_predict.device)
                 task_loss = loss(lbl_predict, actual_labels)
-                if unique_label not in self.task_to_alp_mapping:
-                    self.task_to_alp_mapping[unique_label] = 0.0
-                self.task_to_alp_mapping[unique_label] = abs(task_loss - self.task_to_alp_mapping[unique_label])
+                if unique_label not in self.task_to_last_mapping:
+                    self.task_to_last_mapping[unique_label] = 0.0
+                self.task_to_alp_mapping[unique_label] = abs(task_loss - self.task_to_last_mapping[unique_label])
+                self.task_to_last_mapping[unique_label] = task_loss
 
     def get_next_task(self):
         # warm-up

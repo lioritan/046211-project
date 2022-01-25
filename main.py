@@ -28,7 +28,7 @@ def get_parser():
     parser.add_argument('--seed', type=int, default=1, help="Random seed")
     parser.add_argument('--teacher', default="random", help="teacher method. One of: "
                                                             "random/prediction-far/prediction-similar/"
-                                                            "kl-far/kl-similar/batch-loss-high/batch-loss-low/"
+                                                            "input-far/input-similar/batch-loss-high/batch-loss-low/"
                                                             "task-loss-high/task-loss-low/learning-progress")
     return parser
 

@@ -7,7 +7,7 @@ class RandomSchedule(BaseSchedule):
     def __init__(self, taskset: TaskDataset):
         super().__init__(taskset)
 
-    def update_from_feedback(self, last_loss, last_predict=None):
+    def update_from_feedback(self, last_loss, last_predict=None, last_features=None):
         pass
 
     def get_next_task(self):

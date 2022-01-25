@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from meta_learner_module import MetaLearner
 from scheduler.batch_loss_schedule import BatchLossSchedule
-from scheduler.kl_similarity_schedule import KLSimilaritySchedule
+from scheduler.input_similarity_schedule import InputSimilaritySchedule
 from scheduler.learning_progress_schedule import LearningProgressSchedule
 from scheduler.prediction_similarity_schedule import PredictionSimilaritySchedule
 from scheduler.random_schedule import RandomSchedule
@@ -16,9 +16,9 @@ except Exception as e:
     pass
 
 
-def log_wandb(dataset, train_sample_size, n_test_labels, n_shots, per_task_lr, meta_lr, train_adapt_steps,
-              test_adapt_steps, meta_batch_size, n_epochs, schedule_alg):
-    try:
+def init_wandb_log(dataset, train_sample_size, n_test_labels, n_shots, per_task_lr, meta_lr, train_adapt_steps,
+                   test_adapt_steps, meta_batch_size, n_epochs, schedule_alg):
+    try:  # if wandb is configured and working, logs the run
         wandb.init(project=f'meta-task-cl-project', entity='liorf', save_code=True)
         config = wandb.config
         config.task = dataset
@@ -42,10 +42,10 @@ def schedule_name_to_class(schedule_name, dataset, shots, ways):
         return PredictionSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=True)
     elif schedule_name == "prediction-far":
         return PredictionSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=False)
-    elif schedule_name == "kl-similar":
-        return KLSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=True)
-    elif schedule_name == "kl-far":
-        return KLSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=False)
+    elif schedule_name == "input-similar":
+        return InputSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=True)
+    elif schedule_name == "input-far":
+        return InputSimilaritySchedule(dataset, shots=shots, ways=ways, similar_first=False)
     elif schedule_name == "batch-loss-high":
         return BatchLossSchedule(dataset, shots=shots, ways=ways, hardest_first=True)
     elif schedule_name == "batch-loss-low":
@@ -72,8 +72,8 @@ def run_meta_learner(
         n_epochs,
         schedule_name="random",
         seed=1):
-    log_wandb(dataset, train_sample_size, n_test_labels, n_shots, per_task_lr, meta_lr,
-              train_adapt_steps, test_adapt_steps, meta_batch_size, n_epochs, schedule_name)
+    init_wandb_log(dataset, train_sample_size, n_test_labels, n_shots, per_task_lr, meta_lr,
+                   train_adapt_steps, test_adapt_steps, meta_batch_size, n_epochs, schedule_name)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -117,6 +117,7 @@ def run_meta_learner(
 
     print(f"meta learner train")
     meta_learner.meta_train(n_epochs, train_schedule)
+    del train_schedule
 
     print(f"meta learner test")
     meta_learner.meta_test(task_sets.test)

@@ -15,7 +15,6 @@ def accuracy(predictions, targets):
 
 
 class MetaLearner(object):
-
     def __init__(
             self,
             per_task_lr,
@@ -62,10 +61,13 @@ class MetaLearner(object):
 
         # Evaluate the adapted model
         predictions = learner(D_task_xs_error_eval)
+        features = learner.module.features(D_task_xs_error_eval)
         evaluation_error = self.loss(predictions, D_task_ys_error_eval)
         evaluation_accuracy = accuracy(predictions, D_task_ys_error_eval)
 
-        return evaluation_error, evaluation_accuracy, predictions
+        del D_task_xs_error_eval, D_task_xs_adapt
+
+        return evaluation_error, evaluation_accuracy, predictions, features
 
     def meta_train(self, n_epochs, train_schedule):
 
@@ -81,21 +83,25 @@ class MetaLearner(object):
             meta_train_accuracy = 0.0
 
             for task in range(self.meta_batch_size):
+                print(torch.cuda.memory_allocated(0))
                 # Compute meta-training loss
                 learner = self.maml.clone().to(self.device)
+                # get task from schedule
                 batch = train_schedule.get_next_task()
-                evaluation_error, evaluation_accuracy, prediction = \
+                evaluation_error, evaluation_accuracy, prediction, features = \
                     self.calculate_meta_loss(batch, learner, self.train_adapt_steps)
-                train_schedule.update_from_feedback(evaluation_error, last_predict=prediction)
+                # give feedback to schedule
+                train_schedule.update_from_feedback(evaluation_error, last_predict=prediction, last_features=features)
 
                 evaluation_error.backward()
                 meta_train_error += evaluation_error.item()
                 meta_train_accuracy += evaluation_accuracy.item()
 
-            # Average the accumulated gradients and optimize
-            for p in self.maml.parameters():  # TODO: bad practice, no real effect
+            # Average the accumulated task gradients and optimize
+            for p in self.maml.parameters():  # Note: this is somewhat bad practice
                 p.grad.data.mul_(1.0 / self.meta_batch_size)
             self.opt.step()
+            # Logging
             norm_meta_train_error = meta_train_error / self.meta_batch_size
             norm_meta_train_accuracy = meta_train_accuracy / self.meta_batch_size
             meta_train_errors.append(norm_meta_train_error)
@@ -126,14 +132,16 @@ class MetaLearner(object):
         for task in range(self.meta_batch_size):
             # Compute meta-testing loss
             learner = self.maml.clone()
+            # Random sampling
             D_test_batch = test_taskset.sample()
-            evaluation_error, evaluation_accuracy, _ = \
+            evaluation_error, evaluation_accuracy, _, _ = \
                 self.calculate_meta_loss(D_test_batch, learner, self.test_adapt_steps)
             meta_test_error += evaluation_error.item()
             meta_test_accuracy += evaluation_accuracy.item()
 
         norm_meta_test_error = meta_test_error / self.meta_batch_size
         norm_meta_test_accuracy = meta_test_accuracy / self.meta_batch_size
+        # Logging
         print('Meta Test Error', norm_meta_test_error, flush=True)
         print('Meta Test Accuracy', norm_meta_test_accuracy, flush=True)
 

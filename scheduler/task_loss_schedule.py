@@ -18,8 +18,8 @@ class TaskLossSchedule(BaseSchedule):
         self.shots = shots
         self.hardest_first = hardest_first
 
-    def update_from_feedback(self, last_loss, last_predict=None):
-        last_labels = self.last_generation[2] # divide to true false
+    def update_from_feedback(self, last_loss, last_predict=None, last_features=None):
+        last_labels = self.last_generation[2]
         _, labels = get_evaluation_set(last_labels.size, None, last_labels)
         for unique_label in set(labels):
             inds = (labels == unique_label)
